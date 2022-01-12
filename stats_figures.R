@@ -181,26 +181,47 @@ summary(lm_sum)
 
 
 ## Change from 2008-2018 only 
+# t-test to get significance
+t.test(SUM_AREAkm ~ YEAR, tiles08_18)
+# p = 0.04467
+# t = 2.0586
+# DF = 50.922
+
+# rate of change per year per tile 
 lm_modern <- lm(SUM_AREAkm ~ YEAR, tiles08_18)
 summary(lm_modern)
 # negative change per tile (slope = -0.1925 km2 per year) 
-# and it IS significant! (p = 0.0446)
 
-# using summarized data (change for whole park)
+# rate of change per year for the whole park 
 sum08_18 <- tiles08_18 %>% 
               group_by(YEAR) %>% 
               summarise(AREAkm = sum(SUM_AREAkm))
 
 lm_mod_sum <- lm(AREAkm ~ YEAR, sum08_18)
 summary(lm_mod_sum)
-# change = -5.197 km2 per across the whole park 
+# change = -5.197 km2 per year across the whole park 
 
 
 ## Change from 1960-2008 only 
+# t-test to get significance
+t.test(SUM_AREAkm ~ YEAR, tiles60_08)
+# p = 0.6699
+# t = 0.4304
+# DF = 30.343
+
+# change per tile per year 
 lm_past <- lm(SUM_AREAkm ~ YEAR, tiles60_08)
 summary(lm_past)  
 # slight negative change (-0.02278) but NOT significant at all (p = 0.669)
 
+# change per year across whole park
+sum60_08 <- tiles60_08 %>% 
+                group_by(YEAR) %>% 
+                summarise(AREAkm = sum(SUM_AREAkm))
+
+lm_hist_sum <- lm(AREAkm ~ YEAR, sum60_08)
+summary(lm_hist_sum)
+# -0.6151 km2 per year across the whole park 
 
 
 ### Comparison to alpine glaciers ----
