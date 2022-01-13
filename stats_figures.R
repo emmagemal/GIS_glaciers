@@ -60,24 +60,7 @@ ggplot(tiles2008, aes(x = CLASS_NAME, y = SUM_AREAkm)) +
 ggplot(tiles2018, aes(x = CLASS_NAME, y = SUM_AREAkm)) +
   geom_col()
 
-# fixing areas for 1960 (dividing by 2, adding difference between 1960 and 2008/2018 back)
-tiles1960 <- tiles1960 %>% 
-                mutate(SUM_AREA = SUM_AREA/2) %>% 
-                mutate(SUM_AREAkm = SUM_AREAkm/2)
-
-sum(tiles1960$SUM_AREA)
-sum(tiles1960$SUM_AREAkm)
-
-sum(tiles2018$SUM_AREAkm) - sum(tiles1960$SUM_AREAkm)  # 17.298 km2 (~17.3)
-17.3/59   # 0.293 km2 back per class per tile 
-
-tiles1960 <- tiles1960 %>% 
-                mutate(SUM_AREA = SUM_AREA + 293000) %>% 
-                mutate(SUM_AREAkm = SUM_AREAkm + 0.293)
-
-sum(tiles1960$SUM_AREA)
-sum(tiles1960$SUM_AREAkm)
-
+# summarizing each year 
 sum1960 <- tiles1960 %>% 
               group_by(CLASS_NAME) %>% 
               summarise(AREA = sum(SUM_AREA),
@@ -105,11 +88,11 @@ tiles60_08 <- tiles60_08 %>%
                 mutate(YEAR = as.numeric(YEAR)) %>%   # making year numeric 
                 filter(CLASS_NAME == "Glacier")
 
+
 ### Glacier-data only 
 tiles_glaciers <- tiles %>% 
                     filter(CLASS_NAME == "Glacier") %>% 
                     mutate(YEAR = as.numeric(YEAR))
-
 
 # making a summarized dataset to use for plotting == it's the glacier's data DUH 
 tiles_sum <- tiles %>% 
@@ -150,12 +133,14 @@ boxplot(SUM_AREAkm ~ YEAR, tiles_glaciers)
 lm1 <- lmer(SUM_AREAkm ~ YEAR + (1|TILE), tiles_glaciers)
 lm2 <- lm(SUM_AREAkm ~ YEAR, tiles_glaciers)
 
-AIC(lm1, lm2) # lm2 is better 
+AIC(lm1, lm2) # lm1 is better, but sooo many tiles (not a great random effect)
 
-summary(lm1)
-summary(lm2)  # using this one
-# no significant decline or increase between the years = STABLE, not positive (p = 0.216)
-  # although a visual trend between the years (slope = -0.043 km2 per year per tile)
+summary(lm2)
+
+## Change across whole park (sum of all tiles)
+lm_sum <- lm(AREAkm ~ YEAR, sum_glaciers)
+summary(lm_sum)
+# slope with the sums = -2.2811 km2 per year for the whole park 
 
 
 ## Looking at all the classes
@@ -169,16 +154,9 @@ lm_class3 <- lm(SUM_AREAkm ~ YEAR + CLASS_NAME, tiles)   # using categorical 'YE
 AIC(lm_class1, lm_class2, lm_class3)  # 'lm_class2' is best 
 
 summary(lm_class2)
-# significant difference in area between years for 'Land' (p = 8.23e-05)
-# area of land significantly increases across the years (11.955 km2 per year it seems)
-# no significant difference between glacier or water area across the years 
-
-
-## Change across whole park (sum of all tiles)
-lm_sum <- lm(AREAkm ~ YEAR, sum_glaciers)
-summary(lm_sum)
-# slope with the sums = -1.155 km2 per year for the whole park 
-
+# significant difference in area between years for 'Land' (p = <2e-16)
+# area of land significantly increases across the years (10.384 km2 per year it seems)
+# water also significantly declined (p = 1.16e-12, slope = -6.119)
 
 ## Change from 2008-2018 only 
 # t-test to get significance
@@ -205,14 +183,14 @@ summary(lm_mod_sum)
 ## Change from 1960-2008 only 
 # t-test to get significance
 t.test(SUM_AREAkm ~ YEAR, tiles60_08)
-# p = 0.6699
-# t = 0.4304
-# DF = 30.343
+# p = 0.0045
+# t = 2.9752
+# DF = 49.68
 
 # change per tile per year 
 lm_past <- lm(SUM_AREAkm ~ YEAR, tiles60_08)
 summary(lm_past)  
-# slight negative change (-0.02278) but NOT significant at all (p = 0.669)
+# slight negative change (-0.07) and significant (p = 0.0044)
 
 # change per year across whole park
 sum60_08 <- tiles60_08 %>% 
@@ -221,7 +199,7 @@ sum60_08 <- tiles60_08 %>%
 
 lm_hist_sum <- lm(AREAkm ~ YEAR, sum60_08)
 summary(lm_hist_sum)
-# -0.6151 km2 per year across the whole park 
+# -1.891 km2 per year across the whole park 
 
 
 ### Comparison to alpine glaciers ----
@@ -233,7 +211,7 @@ ggplot(world, aes(x = time_period, y = rate_perc)) +
 # 1960-2008 = 0.30% per year 
 # 2008-2018 = 2.91% per year 
 time_period <- c("1960-2008", "2008-2018", "1960-2018")
-rate_perc <- c(0.30, 2.91, 0.68)
+rate_perc <- c(0.70, 2.91, 0.91)
 place <- c("Sweden, Sarek National Park", "Sweden, Sarek National Park", "Sweden, Sarek National Park")
 
 sarek <- tibble(time_period, rate_perc, place)
@@ -255,6 +233,14 @@ world_sarek_ordered <- world_sarek %>%
                           arrange(place) %>% 
                           mutate(time_period = factor(time_period, levels = time_period))
 str(world_sarek_ordered)    
+
+world_sarek_ordered <- world_sarek_ordered %>% 
+                          mutate(place = case_when(place == "Chile, Southern Patagonia Icefield"
+                                                    ~ "Chile, \nSouthern Patagonia Icefield",
+                                                   place == "Sweden, Sarek National Park"
+                                                    ~ "Sweden, \nSarek National Park",
+                                                   place == "European Alps" ~ "European Alps",
+                                                   place == "Great Caucasus" ~ "Great Caucasus"))
 
 (world_plot2 <- ggplot(world_sarek_ordered, aes(x = time_period, y = rate_perc)) +
                   geom_col(aes(fill = place), position = "dodge") +
@@ -278,4 +264,4 @@ ggsave(filename = "Figures/barplot_world_rates_ordered.pdf", plot = world_plot2,
        width = 7, height = 4.5, units = "in")  
 
 
-
+tiles_glaciers$SUM_AREAkm<2
