@@ -256,7 +256,6 @@ world_sarek_ordered <- world_sarek_ordered %>%
                         legend.text = element_text(size = 8)) +
                   scale_y_continuous(expand = c(0, 0),
                                      limits = c(0, 3.3)) +
-                  scale_x_discrete(labels = function(x) str_wrap(x, width = 5)) + 
                   scale_fill_manual(name = "Location", 
                                     values = c("#02A8DF", "#F49700", "#FDE8B0", "#061D54")))
 
